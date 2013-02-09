@@ -5,9 +5,18 @@ import scala.actors.remote.RemoteActor
 import scala.actors.remote.RemoteActor._
 import scala.actors.remote.Node
 
+/*
+* Problems:
+*  - dangling prompt after server disconnected
+*  - no message about server not available
+* Solution:
+*  - if no servers present, become one
+*/
 object Client {
   
   val prompt: String = "|>"
+  var exit = false
+
   def main(args: Array[String]) : Unit = {
 
     if ((args.length < 2) || (args.length > 3)) {
@@ -22,37 +31,37 @@ object Client {
       cli.start
 
 
-      var exit = false
       while (!exit) {
-        val msg = Console.readLine()
+        val msg = Console.readLine(Client.prompt)
         if (msg == "exit") {
           exit = true
-          cli ! Disconnect
+          cli ! 'Disconnect
         } else {
           cli ! Send("[%s] %s".format(name, msg))
-          Console.print(prompt)
         }
-        
       }
     }
   }
 }
 
 case class Send(message: String)
-case object Disconnect
+case class Connect(name: String)
+case class Disconnect(name: String)
 
 class Client(peer: Node, name: String) extends Actor {
   def act() {
+    RemoteActor.classLoader = getClass().getClassLoader()
     val serv = select(peer, 'Serv)
-    serv ! 'Connect
+    serv ! Connect(name)
     loop {
       react {
         case m:String => Console.printf("%s\n%s", m, Client.prompt)
         case Send(msg) => serv ! msg
-        case Disconnect =>  {
-          serv ! 'Disconnect
+        case 'Disconnect =>  {
+          serv ! Disconnect(name)
           exit
         }
+        case 'Goaway => Client.exit=true; exit
         case _ =>
       }
     }

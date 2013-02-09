@@ -20,20 +20,38 @@ object Server {
   }
 }
 
+
 class ServerActor(port: Int) extends Actor {
-  var chatters = mutable.HashSet[OutputChannel[Any]]()
+  var chatters = mutable.HashMap[String, OutputChannel[Any]]()
+
+    def broadcast(msg: String, sender: Option[OutputChannel[Any]] = None) = chatters.valuesIterator.filter(ch => if (sender.isDefined) ch != sender.get  else true).foreach{ _ ! msg }
 
   def act() {
+    RemoteActor.classLoader = getClass().getClassLoader()
     RemoteActor.alive(port)
     RemoteActor.register('Serv, this)
 
     loop {
       react {
-        case 'Connect =>  chatters += sender
-        case 'Disconnect => chatters -= sender
-        case msg =>  {
+        case Connect(name) =>  {
+          chatters get(name) match {
+            case Some(oldSender) => {
+              sender ! "Name %s already exist".format(name)
+              sender !'Goaway
+            }
+            case None => {
+              chatters += (name->sender)
+              broadcast(name + " connected")
+            }
+          }
+        }
+        case Disconnect(name) => {
+          chatters -= name
+          broadcast(name + " disconnected")
+        }
+        case msg: String =>  {
           Console.println(msg) 
-          chatters filter (c => c != sender) foreach(_ ! msg)
+          broadcast(msg, Some(sender))
         }
       }
     }
