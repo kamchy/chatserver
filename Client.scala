@@ -11,6 +11,7 @@ import scala.actors.remote.Node
 *  - no message about server not available
 * Solution:
 *  - if no servers present, become one
+   - or wait for timeout
 */
 object Client {
   
