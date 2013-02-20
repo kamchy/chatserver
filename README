@@ -1,35 +1,42 @@
-# Simple chat server and client in Scala
+Simple chat server and client in Scala
+======================================
 
 Simple chat client/server using scala actors library.
 
-## Compilation
+Compilation
+------------
+
 First compile sources:
 
-  $ scalac \*.scala
+   $ scalac \*.scala
 
-## Run the chat server
+Run the chat server
+--------------------
 Then run chat server, e.g. on host 9000:
 
-  $ scala pl.chyla.chat.Server 9000
+   $ scala pl.chyla.chat.Server 9000
 
-## Run clients
+Run clients
+--------------------
 Attach (named) client(s) to running server:
   
-  $ scala pl.chyla.chat.Client <ip> <port> <client name>
+   $ scala pl.chyla.chat.Client <ip> <port> <client name>
 
-  $ scala pl.chyla.chat.Client localhost 9000 cli\_one
-  $ scala pl.chyla.chat.Client localhost 9000 cli\_two
+   $ scala pl.chyla.chat.Client localhost 9000 cli\_one
+   $ scala pl.chyla.chat.Client localhost 9000 cli\_two
 
 Typing commands on a client is logged on server and visible to other clients.
 
-### Exit client (termination of client process)
+Exit client (termination of client process)
+--------------------------------------------
 
 To exit clientnicely, type 
 
-   $ exit
+    $ exit
 
 
-##TODO
+TODO
+------
 
  * Recognize that a client is no longer connected
  * Exit immediately if server is not working
