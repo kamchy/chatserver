@@ -1,21 +1,16 @@
 package pl.chyla.chat
 
-import scala.actors.Actor
+import scala.actors.{Actor, AbstractActor, TIMEOUT}
 import scala.actors.remote.RemoteActor
 import scala.actors.remote.RemoteActor._
 import scala.actors.remote.Node
 
-/*
-* Problems:
-*  - dangling prompt after server disconnected
-*  - no message about server not available
-* Solution:
-*  - if no servers present, become one
-   - or wait for timeout
-*/
 object Client {
   
-  val prompt: String = "|>"
+  val promptOut: String = "|>"
+  val promptIn: String =  "<|"
+  val timeout: Int = 6000
+  
   var exit = false
 
   def main(args: Array[String]) : Unit = {
@@ -31,12 +26,11 @@ object Client {
       val cli = new Client(servNode, name)
       cli.start
 
-
       while (!exit) {
-        val msg = Console.readLine(Client.prompt)
+        val msg = Console.readLine(Client.promptOut)
         if (msg == "exit") {
           exit = true
-          cli ! 'Disconnect
+          cli  ! 'Disconnect
         } else {
           cli ! Send("[%s] %s".format(name, msg))
         }
@@ -49,22 +43,32 @@ case class Send(message: String)
 case class Connect(name: String)
 case class Disconnect(name: String)
 
+
+
 class Client(peer: Node, name: String) extends Actor {
   def act() {
     RemoteActor.classLoader = getClass().getClassLoader()
     val serv = select(peer, 'Serv)
+
     serv ! Connect(name)
+
     loop {
       react {
-        case m:String => Console.printf("%s\n%s", m, Client.prompt)
+        case m:String => Console.printf("%s\n%s", m, Client.promptIn)
         case Send(msg) => serv ! msg
         case 'Disconnect =>  {
           serv ! Disconnect(name)
           exit
         }
-        case 'Goaway => Client.exit=true; exit
-        case _ =>
+        case 'Goaway => exitAs('Goaway)
+        case _ => exit('Unknown)
       }
     }
+  }
+
+  def exitAs(reason: Any) {
+    Client.exit = true
+    printf("Server disconnected: %s" format reason)
+    exit(reason)
   }
 }

@@ -20,11 +20,12 @@ object Server {
   }
 }
 
-
+//stale clients problem
 class ServerActor(port: Int) extends Actor {
-  var chatters = mutable.HashMap[String, OutputChannel[Any]]()
+  type Chatters = mutable.HashMap[String, OutputChannel[Any]]
+  var chatters = new Chatters()
 
-    def broadcast(msg: String, sender: Option[OutputChannel[Any]] = None) = chatters.valuesIterator.filter(ch => if (sender.isDefined) ch != sender.get  else true).foreach{ _ ! msg }
+  def broadcast(msg: String, receivers: Iterator[OutputChannel[Any]] = chatters.valuesIterator) = receivers foreach (_ ! msg)
 
   def act() {
     RemoteActor.classLoader = getClass().getClassLoader()
@@ -51,7 +52,7 @@ class ServerActor(port: Int) extends Actor {
         }
         case msg: String =>  {
           Console.println(msg) 
-          broadcast(msg, Some(sender))
+          broadcast(msg, chatters.valuesIterator filter (_ != sender))
         }
       }
     }
